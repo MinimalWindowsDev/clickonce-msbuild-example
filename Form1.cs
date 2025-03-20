@@ -1,5 +1,6 @@
 using System;
 using System.Deployment.Application;
+using System.Diagnostics;
 using System.Reflection;
 using System.Windows.Forms;
 
@@ -7,10 +8,69 @@ namespace ClickOnceDemo
 {
     public partial class Form1 : Form
     {
+        private Button uninstallButton;
+
         public Form1()
         {
             InitializeComponent();
             this.Load += Form1_Load;
+
+            // Add uninstall button
+            InitializeUninstallButton();
+        }
+
+        private void InitializeUninstallButton()
+        {
+            uninstallButton = new Button();
+            uninstallButton.Text = "Uninstall Application";
+            uninstallButton.Location = new System.Drawing.Point(97, 155);
+            uninstallButton.Size = new System.Drawing.Size(168, 23);
+            uninstallButton.Click += UninstallButton_Click;
+            this.Controls.Add(uninstallButton);
+
+            // Only enable the button if we're running as installed app
+            uninstallButton.Enabled = ApplicationDeployment.IsNetworkDeployed;
+        }
+
+        private void UninstallButton_Click(object sender, EventArgs e)
+        {
+            if (ApplicationDeployment.IsNetworkDeployed)
+            {
+                DialogResult result = MessageBox.Show(
+                    "Are you sure you want to uninstall this application?",
+                    "Confirm Uninstall",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (result == DialogResult.Yes)
+                {
+                    try
+                    {
+                        // The correct way to uninstall a ClickOnce application is to start 
+                        // the uninstall process using the Control Panel appwiz.cpl command
+                        Process.Start("appwiz.cpl");
+
+                        MessageBox.Show(
+                            "Please find this application in the Programs and Features list and click Uninstall.",
+                            "Uninstall Instructions",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
+
+                        // Close the application after showing instructions
+                        Application.Exit();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Could not open Programs and Features: " + ex.Message,
+                            "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+            else
+            {
+                MessageBox.Show("This application is not ClickOnce deployed and cannot be uninstalled this way.",
+                    "Not Deployed", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
         private void Form1_Load(object sender, EventArgs e)
